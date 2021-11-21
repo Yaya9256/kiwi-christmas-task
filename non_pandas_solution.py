@@ -2,7 +2,7 @@ import csv
 from collections import defaultdict
 import heapq
 from dataclasses import dataclass, field
-from typing import Any, List
+from typing import Any, List, Dict
 from datetime import datetime, timedelta
 import argparse
 
@@ -10,15 +10,16 @@ import argparse
 @dataclass(order=True)
 class PrioritizedItem:
     priority: int
-    path: Any = field(compare=False)
-    flights: Any = field(compare=False)
+    path: List[str] = field(compare=False)
+    flights: List[Dict[str, Any]] = field(compare=False)
 
     def __repr__(self) -> str:
-        """ structure:
+        """
+        Structure as flight information table:
           WIW -> ECV -> RCZ
-         > JV042 WIW - > ECV  <departure> - <arrival>
-         > GUAM4 ECV - > RCZ  <departure> - <arrival>
-         """
+          > JV042 WIW - > ECV  <departure> - <arrival>
+          > GUAM4 ECV - > RCZ  <departure> - <arrival>
+        """
         p = " -> ".join(self.path)
         d = [
             f"> {i['flight_no']} : {i['origin']} -> {i['destination']} " \
@@ -28,35 +29,41 @@ class PrioritizedItem:
         return "\n".join([p] + d)
 
 
-def find_flights(csv_file, origin, destination, bags):
-    # Create dict {origin : [{flight_details_1}, {flight_details_2,..}]}
+def load_data(csv_file: str, bags: int) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Create dict as {origin : [{flight_details_1}, {flight_details_2,..}]}
+    Calculate final_price for flight including baggage
+    Change date format for visualization
+    """
 
-    # ----------------- Data Load  --------------------
-    d = defaultdict(list)
+    airport_departures = defaultdict(list)
     with open(csv_file, newline='') as file:
         reader = csv.DictReader(file)
         for row in reader:
+            if bags > int(row['bags_allowed']):
+                continue
+
             # add calculations for final price & change date format
             full_price = float(row['bag_price']) * bags
             final_price = full_price + float(row['base_price'])
             row['final_price'] = final_price
             row['arrival'] = datetime.fromisoformat(row['arrival'])
             row['departure'] = datetime.fromisoformat(row['departure'])
-            row['bags_allowed'] = int(row['bags_allowed'])
-            d[row['origin']].append(row)
+            airport_departures[row['origin']].append(row)
+    return airport_departures
 
-    # --------------------- Simple validity check -------------------------
 
-    # Exception for not matching input & file combination /garbage /mistake
-    exist_from = d.get(origin)
-    exist_to = destination in (e['destination'] for l in d.values() for e in l)
-    if not exist_from or not exist_to:
-        raise ValueError(f"The connection between {origin} & {destination} is "
-                         f"not found in file {csv_file}")
+def path_finder(
+    airport_departures: Dict[str, List[Dict[str, Any]]],
+    origin: str,
+    destination: str,
+) -> None:
+    """
+    Initialize priority queue with starting point Airport shortcut.
+    Priority queue orders inputs by final_price and continue searching till
+    destination is reached.
+    """
 
-    # --------------------- Path finding -------------------------
-
-    # Initialize priority queue with starting point Airport
     queue: List[PrioritizedItem] = []
     heapq.heappush(
         queue,
@@ -66,16 +73,17 @@ def find_flights(csv_file, origin, destination, bags):
             flights=[]
         )
     )
-
+    path_found = False
     while queue:
         item = heapq.heappop(queue)
         # if final destination, continue listing other routes
         if item.path[-1] == destination:
             print(item)
+            path_found = True
             continue
 
         # check list of all connections from last Airport in queue
-        for i in d[item.path[-1]]:
+        for i in airport_departures[item.path[-1]]:
             # if Airport already in the path, continue
             if i['destination'] in item.path:
                 continue
@@ -88,10 +96,6 @@ def find_flights(csv_file, origin, destination, bags):
                        <= timedelta(hours=6):
                     continue
 
-            # if specific amount of bags is required
-            if i['bags_allowed'] < bags:
-                continue
-
             heapq.heappush(
                 queue,
                 PrioritizedItem(
@@ -100,6 +104,8 @@ def find_flights(csv_file, origin, destination, bags):
                     flights=item.flights + [i]
                 )
             )
+    if not path_found:
+        print('No flight connection found between', origin, 'and', destination)
 
 
 if __name__ == '__main__':
@@ -108,18 +114,27 @@ if __name__ == '__main__':
                                                  'combinations for a selected '
                                                  'route between airports '
                                                  'A -> B, ordered by price')
-    parser.add_argument('csv_file', type=str,
+    parser.add_argument('csv_file',
+                        type=str,
                         help='CSV file.')
-    parser.add_argument('from_airport', type=str,
+    parser.add_argument('from_airport',
+                        type=str,
                         help='from airport shortcut')
-    parser.add_argument('to_airport', type=str,
+    parser.add_argument('to_airport',
+                        type=str,
                         help='to airport shortcut')
-    parser.add_argument('bags', default='1', type=int, nargs='?',
+    parser.add_argument('bags',
+                        default='1',
+                        type=int,
+                        nargs='?',
                         help='number of bags allowed')
 
     args = parser.parse_args()
 
-    find_flights(args.csv_file,
-                 args.from_airport.upper(),
-                 args.to_airport.upper(),
-                 args.bags)
+    airport_departures = load_data(args.csv_file, args.bags)
+
+    path_finder(
+        airport_departures,
+        args.from_airport.upper(),
+        args.to_airport.upper()
+    )
