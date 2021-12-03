@@ -49,6 +49,18 @@ higher amount of bags than any flight allows, empty list is returned.
 
 
 
+## Version 
+I created different solutions for the same task 
+
+v1_solution_pandas.py -> my first and very simple code to set and test algorithm. Uses pandas for reading and sorting the input data.  Returns output flights visualized as flight table, easy to read for a human. 
+
+
+
+v2_solution_csv.py -> this is the same solution as previous one, only without pandas, using csv library.  Returns output flights visualized as flight table, easy to read for a human.
+
+
+v3_solution_json.py ->  solution sent to evaluation, since structure of code is finished to match all requirements.  Returns output flights in json format. 
+
 
 
 
