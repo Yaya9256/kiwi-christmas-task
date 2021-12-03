@@ -1,6 +1,6 @@
 # Task 
 
-This is a task created by Kiwi as an entrence task for python weekend 
+This is a task created by Kiwi as an entrence task for python weekend /n
 Assignment here: https://github.com/kiwicom/python-weekend-xmas-task
 
 
