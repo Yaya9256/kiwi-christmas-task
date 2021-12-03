@@ -1,19 +1,21 @@
+# Task 
+
 This is a task created by Kiwi as an entrence task for python weekend 
 Assignment here: https://github.com/kiwicom/python-weekend-xmas-task
 
 
 
-# Prerequisites
+## Prerequisites
 Python 3.8.+
 
-# Install 
+## Install 
 Uses only the standard libraries, no installs required.
 
-# Solution
+## Solution
 The idea is using Dijkstra's algorithm: find a route between two airports 
 ordered by price of the ticket .
 
-# Usage
+## Usage
 ```
 $ python .\solution.py -h
 usage: solution.py [-h] csv_file from_airport to_airport [bags]
@@ -41,7 +43,7 @@ Usage with bags set:
 python solution.py example0.csv WIW RFZ 2
 ```
 
-## CAVEAT: 
+# CAVEAT: 
 In case no airport combination is found, or bags argument is supplied with 
 higher amount of bags than any flight allows, empty list is returned.
 
